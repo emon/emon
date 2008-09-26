@@ -1,0 +1,174 @@
+#!/bin/sh
+TAB="        "
+NEWLINE="`echo`"
+    
+DEFAULT_PATH_LIBEXEC_EMON="../src"
+DEFAULT_DSP_CAPT="/dev/dsp"
+DEFAULT_DSP_PLAY="/dev/dsp"
+DEFAULT_CODEC="pcmu"
+DEFAULT_PORT="10000"
+
+PATH_LIBEXEC_EMON=${PATH_LIBEXEC_EMON-${DEFAULT_PATH_LIBEXEC_EMON}}
+DSP_CAPT=${DSP_CAPT-${DEFAULT_DSP_CAPT}}
+DSP_PLAY=${DSP_PLAY-${DEFAULT_DSP_PLAY}}
+CODEC=${CODEC-${DEFAULT_CODEC}}
+PORT=${PORT-${DEFAULT_PORT}}
+
+usage () {
+    echo ""
+    echo "-- Callee of the NOTASIP phone by EMON --"
+    echo "usage: $0 [-r recdev] [-p playdev] [-c codec] address [port]"
+    echo "options:"
+    echo "    recdev       device for recording  [$DEFAULT_DSP_CAPT]"
+    echo "    playdev      device for playing    [$DEFAULT_DSP_PLAY]"
+    echo "    codec        codec for voice stream[$DEFAULT_CODEC]"
+    echo "        (pcmu       PCM-uLaw)"
+    echo "        (dvi4       IMA-ADPCM)"
+    echo "    address      callee host address"
+    echo "    port         callee UDP/IP port    [$DEFAULT_PORT]"
+    echo ""
+}
+
+codec_set() {
+    case "$1" in
+        "pcmu")
+		EMON_CLOCK="8000";EMON_FREQ="160";
+
+                AUDIOCAPT_DSP_RATE="8000";AUDIOCAPT_DSP_CH="1";
+		AUDIOCAPT_CODEC="pcmu";AUDIOCAPT_MARKER="1";
+
+                AUDIOPLAY_DSP_RATE="8000";AUDIOPLAY_DSP_CH="1";
+		AUDIOPLAY_CODEC="pcmu";AUDIOPLAY_MARKER="0";
+
+		RTPENC_PAYLOAD="0";RTPDEC_PAYLOAD="0"
+		;;
+        "dvi4")
+		EMON_CLOCK="8000";EMON_FREQ="160";
+
+                AUDIOCAPT_DSP_RATE="8000";AUDIOCAPT_DSP_CH="1";
+		AUDIOCAPT_CODEC="dvi4";AUDIOCAPT_MARKER="1";
+
+                AUDIOPLAY_DSP_RATE="8000";AUDIOPLAY_DSP_CH="1";
+		AUDIOPLAY_CODEC="dvi4";AUDIOPLAY_MARKER="0";
+
+		RTPENC_PAYLOAD="5";RTPDEC_PAYLOAD="5"
+		;;
+        * )
+		ERROR="${ERROR}${TAB}codec($1) is not supported.${NEWLINE}"
+		;;
+    esac
+}
+
+dsp_set(){
+    AUDIOCAPT_DSP="$1"
+    AUDIOPLAY_DSP="$2"
+    if [ ! -r "$AUDIOCAPT_DSP" ];then
+	ERROR="${ERROR}${TAB} cannot read from $AUDIOCAPT_DSP${NEWLINE}"
+    fi
+    if [ ! -w "$AUDIOPLAY_DSP" ];then
+	ERROR="${ERROR}${TAB} cannot write to $AUDIOPLAY_DSP${NEWLINE}"
+    fi
+    if [ $AUDIOCAPT_DSP = $AUDIOPLAY_DSP ];then
+	AUDIOCAPTPLAY_DSP=$AUDIOCAPT_DSP;
+    else
+	AUDIOCAPTPLAY_DSP="";
+    fi
+}
+    
+ntsp_set(){
+    NTSPWAIT_ADDR=${1-"localhost"}
+    NTSPWAIT_PORT=${2-"-1"}
+    if [ ${NTSPCALL_PORT} -le 0 -o ${NTSPCALL_PORT} -ge 65536 ];then
+	ERROR="${ERROR}  port ($2) is invalid ${NEWLINE}"
+    fi
+}
+
+if [ $# = 0 ] ;then
+    usage;
+    exit 1;
+fi
+
+while [ $# -gt 0 ];do
+#DEBUG#    echo "DEBUG:opt == \"$1\""
+    case "$1" in
+    -r ) #capt
+	shift;
+	DSP_CAPT=$1;
+	shift;
+	;;
+    -p )
+	shift;
+	DSP_PLAY=$1
+	shift;
+	;;
+    -c )
+	shift;
+	CODEC=$1
+	shift;
+	;;
+    -h )
+	usage;
+	exit 0;
+	;;
+    *  )
+	break;
+	;;
+    esac
+done
+
+#DEBUG# echo "DEBUG:opt \"$1\" \"$2\""
+
+if [ $# -gt 2 -o $# = 0 ] ;then
+    echo "ERROR: Please specify callee host address."
+    usage;
+    exit 1;
+fi
+
+if [ $# = 2 ];then
+    PORT=$2
+fi
+ADDR=$1;
+
+#DEBUG#  echo "DEBUG: addr=$ADDR port=$PORT"
+
+ERROR=""
+codec_set $CODEC
+dsp_set   $DSP_CAPT $DSP_PLAY 
+ntsp_set  $ADDR $PORT
+
+
+if [ "x${ERROR}" != "x" ];then
+    echo "ERROR:"
+    echo "$ERROR"
+    exit 1
+fi
+
+#DEBUG#  echo "NO ERROR, $DSP_CAPT $DSP_PLAY $CODEC $ADDR $PORT"
+
+#call
+
+echo "wait on $ADDR:$PORT ">&2
+
+export PATH="${PATH_LIBEXEC_EMON}:${PATH}"
+
+
+#for recording voice
+AUDIOCAPT="audiocapt -C${EMON_CLOCK} -R${EMON_FREQ} -f${AUDIOCAPT_CODEC} -c1 -r${AUDIOCAPT_DSP_RATE} -m${AUDIOCAPT_MARKER}"
+RTPENC="rtpenc -C${EMON_CLOCK} -R${EMON_FREQ} -y${RTPDEC_PAYLOAD} -2"
+
+#for playing voice
+RTPDEC="rtpdec -C${EMON_CLOCK} -R${EMON_FREQ} -W0";
+AUDIOPLAY="audioplay -C${EMON_CLOCK} -R${EMON_FREQ} -f${AUDIOPLAY_CODEC} -c1 -r${AUDIOPLAY_DSP_RATE} -m${AUDIOPLAY_MARKER}"
+
+#common ntspcall arg
+NTSPWAIT="ntspwait ${NTSPWAIT_ADDR} ${NTSPWAIT_PORT}"
+echo = pipeline start =
+if [ ! ${AUDIOCAPTPLAY_DSP} ];then
+    echo "${NTSPWAIT} \"${AUDIOCAPT} -d${AUDIOCAPT_DSP}|${RTPENC}\" \"${RTPDEC}|${AUDIOPLAY} -d${AUDIOPLAY_DSP}\""
+    echo = pipeline end =
+    exec  ${NTSPWAIT}  "${AUDIOCAPT} -d${AUDIOCAPT_DSP}|${RTPENC}"   "${RTPDEC}|${AUDIOPLAY} -d${AUDIOPLAY_DSP}" 
+else
+    echo "${NTSPWAIT} \"${RTPDEC}|audiocaptplay -c1 -f1 -d ${AUDIOCAPTPLAY_DSP} -- ${AUDIOPLAY} -- ${AUDIOCAPT}|${RTPENC}\""
+    echo = pipeline end =
+    exec ${NTSPWAIT} "${RTPDEC}|audiocaptplay -c1 -f1 -d ${AUDIOCAPTPLAY_DSP} -- ${AUDIOPLAY} -- ${AUDIOCAPT}|${RTPENC}"
+fi

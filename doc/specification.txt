@@ -1,0 +1,361 @@
+/* 
+ * Error-correcting Multicast on Open Nodes (EMON)
+ *
+ * This software is placed in public domain.
+ */ 
+
+/*
+ * author(s): KOMURA Takaaki <komura@astem.or.jp>
+ * started:   2001/06/19
+ *
+ * $Id: specification.txt,v 1.1 2008/09/26 15:10:34 emon Exp $
+ */
+
+EMON System 外部仕様
+
+1. 概要
+
+1.1 主なプロセス
+
+送信側
+ jpegcapt	キャプチャカードから画像を取り込む
+ audiocapt	オーディオカードから音声を取り込む
+ fecenc		データに FEC 符号を付加する
+ rtpenc		データを指定されたサイズに分割しながら RTP ヘッダを付加
+ udpsend	データをネットワークに送信
+
+受信側
+ udprecv	データをネットワークから受信
+ rtpdec		RTP のヘッダ情報に基づいて順序変更
+ fecdec		FEC 付きデータの誤りを訂正し FEC 無しの(素の)データを出力
+(rtpfecdec	rtprecv と fecdec の機能を合わせたもの)
+ jpegplay	(Motion)JPEG 画像の再生
+ audioplay	音声の再生
+
+1.2 主な環境変数と主なオプション
+
+各プロセスの動作に関するパラメータを，環境変数またはオプションで変
+更することができる．
+環境変数もオプションも指定されていなければ，デフォルト値を使う．
+環境変数とオプションの両方が指定されていれば，オプションで指定され
+た値を使う．
+ 
+ 環境変数名	オプション	デフォルト値	解説
+--------------------------------------------------------------------------
+ EMON_FEC_TYPE	-T		RS		FEC の種類
+ EMON_CLOCK	-C		44100		RTP の Timestamp の基準値
+ EMON_FREQ	-R		1470		FEC 処理一回の時間
+ EMON_PLEN	-L		1200		パケット長
+ EMON_RS_M	-M		4		Reed Solomon 符号パラメータ
+ EMON_RS_N	-N		15		同上
+ EMON_RS_F	-F		3		同上
+ EMON_PT	-y		96		RTP の Payload Type
+
+送信側プロセス用
+ RTPSEND_ADDR	-A		127.0.0.1	送信先 IP アドレス
+ RTPSEND_PORT	-P		10002		送信先 port 番号
+ RTPSEND_SRCADDR-a				送信元 IP アドレス
+ RTPSEND_SCRPORT-p				送信元 port 番号
+ RTPSEND_TTL	-t		64		IP パケットの TTL
+ RTPSEND_IF	-I				送信インタフェース
+		-d		addr:port	送信先 addr&port (複数指定可)
+
+受信側プロセス用
+ RTPRECV_ADDR	-A		127.0.0.1	受信 IP アドレス
+ RTPRECV_PORT	-P		10002		受信 port 番号
+ RTPRECV_IF	-I				受信インタフェース
+
+
+====================
+
+2. プロセス外部仕様
+
+2.1  jpegcapt
+
+書式
+	jpegcapt [-C <clock>] [-R <freq>] [-w <width>] [-h <height>]
+		 [-d <device file name>] [-l <input line>]
+		 [-f <capture format>] [-q <quality>]
+		 [-s <data size>]
+
+関連する環境変数と対応するオプション
+
+	環境変数名	オプション	デフォルト値
+	--------------------------------------------
+	EMON_CLOCK	-C		44100
+	EMON_FREQ	-R		1470
+	JPEGCAPT_WIDTH	-w		320
+	JPEGCAPT_HEIGHT	-h		240
+	JPEGCAPT_DEV	-d		/dev/bktr0
+	JPEGCAPT_LINE	-l		0
+	JPEGCAPT_FORMAT	-f		2
+	JPEGCAPT_QUALITY-q		75
+	JPEGCAPT_DSIZE	-s		14400 (=1200*12)
+
+解説
+
+キャプチャカードから画像を取り込み，JPEG 圧縮したデータを fd=1 に出
+力する．1フレーム分のJPEGデータを一つのメッセージとして出力する．
+
+Header の Timestamp の初期値は乱数で決定し，それ以降は freq の倍数
+ずつ増加させる．
+
+画像の取り込み速度は，毎秒 (clock / freq) 枚．
+この速度で処理が間に合わない場合には，フレームを飛ばしても良いが，
+Timestamp は必ず freq の倍数だけ増加させる．
+
+-d でデバイスファイル名，-l で入力ラインを指定可能．
+-l で指定するのば 0 から 5 の数字で，最大で 6系統の入力ラインのうち，
+どのラインからの映像をキャプチャするかを選択する．
+-l のオプションとして C, S の文字も許す．
+C は 0 番，S は 5 番を指定した場合と同様に動作する．
+(デバイス依存の可能性もあるが) 0 番が Composite 入力，5 番が S-Video 入
+力にバインドされていため．
+
+取り込む画像のサイズは -w，-h で変更可能．
+取り込むデバイスは -d で変更可能．
+
+JPEG 圧縮に関して，圧縮率(quality)を -q で変更可能．
+-s でデータサイズを指定した場合は，圧縮後のデータ長が指定したサイズ
+以下になるように圧縮率を自動調整する．
+(この処理が間に合わない場合もフレームを捨てて良い)
+
+
+2.2 audiocapt
+
+書式
+	audiocapt [-C <clock>] [-R <freq>] [-f <format>]
+		  [-r <sampling rate>] [-b <quantum bit>] [-c <# of chanel>]
+
+関連する環境変数と対応するオプション
+
+	環境変数名	オプション	デフォルト値
+	--------------------------------------------
+	EMON_CLOCK	-C		44100
+	EMON_FREQ	-R		1470
+	AUDIOCAPT_FORMAT -f		?
+	AUDIOCAPT_RATE	-r		44100
+	AUDIOCAPT_BIT	-b		16
+	AUDIOCAPT_CHANNEL -c		2 (=stereo)
+
+解説
+
+サウンドカードから音声を取り込み，fd=1 に出力．
+
+サウンドカードから取り込むデータ量は，1秒あたり (RATE * BIT/8 * CHANNEL)
+ バイトになる．
+fd=1 に出力するメッセージは，毎秒 (clock / freq) 回，必要に応じて clock
+や freq を調整して使用すること．
+
+
+2.3 fecenc
+
+書式
+	fecenc [-F <fec type name>] [-C <clock>] [-R <freq>]
+	       [-L <packet len>]  [-M <n>] [-N <n>] [-F <n>]
+
+関連する環境変数と対応するオプション
+
+	環境変数名	オプション	デフォルト値
+	--------------------------------------------
+	EMON_FEC_TYPE	-T		RS
+	EMON_CLOCK	-C		44100
+	EMON_FREQ	-R		1470
+	EMON_PLEN	-L		1240
+	EMON_RS_M	-M		4
+	EMON_RS_N	-N		15
+	EMON_RS_F	-F		3
+
+解説
+
+fd=0 から読み込んだメッセージのデータに FEC 符号を付加して fd=1 に出力す
+る．
+
+FEC 処理は一つのメッセージを受信するごとに行う．
+
+FEC_TYPE で，利用する FEC 符号の種類を変更可能．現時点で利用可能なのは
+"RS" のみ．以下は，FEC_TYPE が "RS" の場合の説明．
+
+fd=0 から読み込んだデータが (RS_K * PLEN) バイト以下であれば，不足部分を
+0 で埋めて FEC 処理を行う．
+読み込んだデータが (RS_K * PLEN) バイトより大きければ，FEC 処理は行えな
+いので，Message Length = 0 のメッセージを一つ出力して，次の入力を待つ．
+
+(RS_K * PLEN) バイトのメディアデータから (RS_F * PLEN) バイトの FEC デー
+タを計算し，全体で ((RS_K + RS_F) * PLEN)バイトのデータを出力する．
+fd=1 に出力するデータは，全体を一つのメッセージにする．
+
+
+2.4 rtpenc
+(udpsend と統合して実装しても良いと思う)
+
+書式
+	rtpenc [-C <clock>] [-R <freq>] [-L <packet len>]
+
+関連する環境変数と対応するオプション
+
+	環境変数名	オプション	デフォルト値
+	--------------------------------------------
+	EMON_CLOCK	-C		44100
+	EMON_FREQ	-R		1470
+	EMON_PLEN	-L		1240
+	EMON_RS_N	-N		15
+	EMON_PT		-y		96
+
+fd=0 から読み込んだメッセージに RTP ヘッダを付加して，RTP パケット(UDP
+パケットのペイロード部分)一つを，一つのメッセージとして fd=1 に出力する．
+出力メッセージの RTP のペイロード長は必ず PLEN であること．
+
+RTP ヘッダに格納するデータのうち，Timestamp は入力メッセージのヘッダから，
+Payload Type は環境変数かオプションから得る．
+Seqence Number の値は rtpenc 内で生成して各出力ごとに 1 ずつ増加させる．
+
+
+2.5 udpsend
+(rtpenc と統合して実装しても良いと思う)
+
+書式
+	udpsend [-C <clock>] [-R <freq>] [-L <plen>] [-K <n>] [-F <n>] [-N <n>]
+		[-t <ttl>] [-I <interface>]
+		[-A <dst IP addr>] [-P <dst port>]
+		[-a <src IP addr>] [-p <src port>]
+		[-D <debug level>] [-e <error rate>] [-123s]
+
+関連する環境変数と対応するオプション
+
+	環境変数名	オプション	デフォルト値
+	--------------------------------------------
+	EMON_CLOCK	-C		44100
+	EMON_FREQ	-R		1470
+	EMON_PLEN	-L		1240
+	EMON_RS_N	-N		15
+	RTPSEND_ADDR	-A		127.0.0.1
+	RTPSEND_PORT	-P		10002
+	RTPSEND_SRCADDR -a
+	RTPSEND_SRCPORT -p
+	RTPSEND_TTL	-t		64
+	RTPSEND_IF	-I
+
+fd=0 から読み込んだメッセージを UDP パケットとしてネットワークに送信する．
+パケットの送信間隔は clock，freq，RS_K，RS_F から算出し，できる限り正確
+に等間隔に送信する．
+
+送信先アドレスがマルチキャストアドレスの場合は，-I で送信するネットワー
+クインタフェースを，-t で TTL を指定できる．
+
+
+2.6 udprecv
+(rtpdec と統合して実装しても良いと思う)
+
+書式
+	udprecv	[-A <address>] [-P <port>] [-I <interface>]
+
+
+2.7 rtpdec
+
+2.8 fecdec
+
+2.9 rtpfecdec
+
+2.10 jpegplay
+
+2.11 audioplay
+
+
+====================
+
+3. EMON Message Format
+
+Message Header
+
+0              7 8            15 16           23 24           31
++---------------+---------------+---------------+---------------+
+|    Reserved   |                 Message Length                |
++---------------+---------------+---------------+---------------+
+|                           Timestamp                           |
++---------------+---------------+---------------+---------------+
+
+ Reserved         must have the value 0.
+
+ Messsage Length  24-bit unsigned integer. Length of the Message 
+                  Payload.
+
+ Timestamp        32-bit unsigned integer. RTP timestamp.
+
+
+Reserved ビットは，特定のプロセス間で追加の情報が必要な場合に，それらの
+ソフト間に限って使用するこができる．
+これらのビットを使用する必要がないプロセスは，0 で埋める必要がある．
+
+Message Length, Timestamp は，ネットワークバイトオーダで格納．
+
+Message Length の最大値は 0x00fffffe = 16777215 - 1．
+0x00ffffff = 166777215 は明示的に通信を終了させる目的のために予約．
+
+
+====================
+
+4. 各プロセスが入出力できるメッセージのタイプについて
+
+表記法
+       a          b
+  ----> (process1) ---->
+                  |
+                  v
+  <---- (process2) <----
+       c          d
+
+ a: (process1) の入力フォーマット
+ b: (process1) の出力フォーマット
+ c: (process2) の出力フォーマット
+ d: (process2) の入力フォーマット
+
+a〜d の位置に使うフォーマットの略記号
+
+ F: 画像 1 フレーム分のデータにつき 1メッセージ
+ P: IP 1パケット分のデータにつき 1メッセージ
+ p: IP 1パケット分のデータにつき 1メッセージ．ただし，元のフレームの区切
+    を伝える必要があるため，EMON header の Reserved Field を下記のように
+    して利用する．
+
+0              7 8            15 16           23 24           31
++-------------+-+---------------+---------------+---------------+
+|  Reserved   |M|                 Message Length                |
++-------------+-+---------------+---------------+---------------+
+|                           Timestamp                           |
++---------------+---------------+---------------+---------------+
+
+ Reserved         must have the value 0.
+ M(marker) flag   1 = more fragments, 0 = last fragment
+
+
+例1)
+
+        F     F      p    p/F      P     P     (IP)
+jpegcapt ----> fecenc ----> rtpenc ----> udpsend --->
+        |            |            |
+        v            v            v
+jpegplay <---- fecdec <---- rtpdec <---- updrecv <---
+        F     F      p     p      P     P      (IP)
+
+
+例2)
+        F     F      p    p/F      (IP)
+jpegcapt ----> fecenc ----> rtpsend ---->
+        |            |
+        v            v
+jpegplay <---- fecdec <---- rtprecv <----
+        F     F      p     p       (IP)
+
+
+例3)
+        F    p/F      (IP)
+jpegcapt ----> rtpsend ---->
+        |
+        v
+jpegplay <---- rtprecv <----
+        F     p       (IP)
+
+
+
+<<EOF>>

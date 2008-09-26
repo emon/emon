@@ -1,0 +1,97 @@
+#!/bin/sh
+
+#!/bin/sh
+TAB="        "
+NEWLINE="`echo`"
+   
+DEFAULT_PATH_DTMFFILE="./dtmf"
+PATH_DTMFFILE=${PATH_DTMFFILE-${DEFAULT_PATH_DTMFFILE}}
+
+FILE_PREFIX="dtmf_" 
+FILE_SURFIX=".8k16b1chraw" 
+FILE_SILENT="${FILE_PREFIX}s${FILE_SURFIX}" 
+TONE_SET="1234567890efs" #e==* f==#
+
+
+## if you search  MAIN , "MAIN"
+dtmffile_set(){
+    DIR=$1;
+    TONES=`echo "$TONE_SET" |sed -e 's/\(.\)/\1 /g'`;  #0123 => 0 1 2 3
+    for TONE in $TONES;do
+	FILE="${PATH_DTMFFILE}/${FILE_PREFIX}${TONE}${FILE_SURFIX}"
+	if [ ! -r ${FILE} ];then
+	    ERROR="${ERROR} cannot read tone(${TONE}) file (${FILE}). ${NEWLINE}"
+	    break;
+	fi
+    done
+}
+
+
+usage () {
+    echo ""
+    echo "-- DTMF generater --"
+    echo "usage: $0 [-h] > /dev/dsp"
+    echo "    dsp must be able to play dtmf sample of DTMF file."
+    echo ""
+}
+
+#
+# MAIN start;
+#
+
+#Parse $*
+while [ $# -gt 0 ];do
+    case "$1" in
+    -h )
+	usage;
+	exit 0;
+	;;
+    *  )
+	break;
+	;;
+    esac
+done
+
+#DEBUG# echo "DEBUG:opt \"$1\" \"$2\""
+if [ ! $# -eq 0 ] ;then
+    echo "ERROR: unsupported option ($1)."
+    echo "       For more information, type \"$0 -h.\""
+    exit 1;
+fi
+
+#
+#Check vars
+#
+
+ERROR=""
+dtmffile_set ${PATH_DTMFFILE}
+
+if [ "x${ERROR}" != "x" ];then
+    echo "ERROR:"
+    echo "$ERROR"
+    exit 1
+fi
+
+while [ 1 ];do
+    read INLINE;
+    if [ ! $? -eq 0 ];then #EOF
+	break;
+    fi
+    INLINE=`echo "$INLINE" |sed -e 's/[^0-9\*#]//g'`; #del [^0^9*#]
+    INLINE=`echo "$INLINE" |sed -e 'y/*#/ef/'`;       #*=>e #=>f
+    INLINE=`echo "$INLINE" |sed -e 's/\(.\)/\1 /g'`;  #0123 => 0 1 2 3
+#DB#    echo "$INLINE";
+#DB#    echo -n "START>>"
+    FILES=""
+    for NUM in $INLINE;do
+#DB#	echo -n "${NUM}-"
+	TONEFILE="${PATH_DTMFFILE}/${FILE_PREFIX}${NUM}${FILE_SURFIX}";
+	FILES="${FILES} ${TONEFILE} ${PATH_DTMFFILE}/${FILE_SILENT}";
+    done
+    if [ "x$FILES" = "x" ];then
+	continue;
+    fi
+#DB#    echo "cat $FILES"
+#RE#
+    cat $FILES
+done

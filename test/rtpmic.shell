@@ -1,0 +1,7 @@
+#!/bin/sh
+PATH_EMON_TEST="emon/test"
+
+clear
+cd ${PATH_EMON_TEST}
+sh rtpmic
+exit

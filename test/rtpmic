@@ -1,0 +1,155 @@
+#!/bin/sh
+
+TAB="        "
+NEWLINE="`echo`"
+    
+DEFAULT_PATH_LIBEXEC_EMON="../src"
+DEFAULT_DSP_CAPT="/dev/dsp"
+DEFAULT_CODEC="pcmu"
+DEFAULT_LOCKFILE="rtpmic.dsp.lock"
+
+PATH_LIBEXEC_EMON=${PATH_LIBEXEC_EMON-${DEFAULT_PATH_LIBEXEC_EMON}}
+DSP_CAPT=${DSP_CAPT-${DEFAULT_DSP_CAPT}}
+CODEC=${CODEC-${DEFAULT_CODEC}}
+LOCKFILE=${LOCKFILE-${DEFAULT_LOCKFILE}}
+
+
+codec_set() {
+    case "$1" in
+        "pcmu")
+		EMON_CLOCK="8000";EMON_FREQ="160";
+
+                AUDIOCAPT_DSP_RATE="8000";AUDIOCAPT_DSP_CH="1";
+		AUDIOCAPT_CODEC="pcmu";AUDIOCAPT_MARKER="1";
+
+                AUDIOPLAY_DSP_RATE="8000";AUDIOPLAY_DSP_CH="1";
+		AUDIOPLAY_CODEC="pcmu";AUDIOPLAY_MARKER="0";
+
+		RTPENC_PAYLOAD="0";RTPDEC_PAYLOAD="0"
+		;;
+        "dvi4")
+		EMON_CLOCK="8000";EMON_FREQ="160";
+
+                AUDIOCAPT_DSP_RATE="8000";AUDIOCAPT_DSP_CH="1";
+		AUDIOCAPT_CODEC="dvi4";AUDIOCAPT_MARKER="1";
+
+                AUDIOPLAY_DSP_RATE="8000";AUDIOPLAY_DSP_CH="1";
+		AUDIOPLAY_CODEC="dvi4";AUDIOPLAY_MARKER="0";
+
+		RTPENC_PAYLOAD="5";RTPDEC_PAYLOAD="5"
+		;;
+        * )
+		ERROR="${ERROR}${TAB}codec($1) is not supported.${NEWLINE}"
+		;;
+    esac
+}
+
+dst_set(){
+    DST_ADDR=${1}
+    DST_PORT=${2-"-1"}
+    if [ ${DST_PORT} -le 0 -o ${DST_PORT} -ge 65536 ];then
+	ERROR="${ERROR}  port ($2) is invalid ${NEWLINE}"
+    fi
+}
+
+trylock(){
+    DSPLOCK=0;
+    ln -s "pid$$" ${LOCKFILE} 2>/dev/null;
+    if [ $? -eq 0 ];then
+	DSPLOCK=1;
+    fi
+}
+
+
+argcnt(){
+    ARGV="$1"
+    CNT=0;
+    for ARG in $ARGV;do
+	CNT=`expr $CNT + 1`;
+    done
+#    echo "DEBUG $CNT"
+}
+
+inputarg(){
+	while [ 1 ];do
+	    echo -n ">"
+	    read INLINE;
+	    if [ ! $? -eq 0 ];then #EOF
+		"receive EOF,Bye."
+		exitrtpmic 1;
+	    fi
+	    argcnt "$INLINE"
+	    if [ $CNT -eq 2 -o $CNT -eq 3 ];then
+	        set -- $INLINE
+		ADDR=$1;
+		PORT=$2;
+		CODEC=${3-${CODEC}};
+		ERROR=""
+		codec_set $CODEC
+		dst_set   $ADDR $PORT
+		if [ "x${ERROR}" != "x" ];then
+		    echo "ERROR:"
+		    echo "${ERROR}"
+		else
+		    return;
+		fi
+	    else
+		echo "\"$INLINE\" is not acceptable."
+		continue;
+	    fi
+done
+
+
+}
+
+exitrtpmic(){
+    EXIT="$1"
+    if [ $DSPLOCK -eq 1 ];then
+	unlink "${LOCKFILE}" 2>/dev/null;
+    fi
+    exit ${EXIT};
+}
+
+
+
+#MAIN
+export PATH="${PATH_LIBEXEC_EMON}:${PATH}"
+DSPLOCK=0;
+TRAP="exitrtpmic 1;";
+trap "${TRAP}" 0 1 2 15
+
+echo "Please inform recieve host ,port and codec"
+echo "usage:"
+echo ">hostaddr udpport [codec]"
+echo "example:"
+echo ">130.54.22.88 18802"
+echo "or"
+echo ">130.54.22.88 18802 dvi4"
+
+trylock;
+if [ $DSPLOCK -eq 0 ];then
+    echo "Someone uses this mic now,!MAYBE!"
+fi
+
+inputarg # set valid ${ADDR} ,${PORT} and (by ${CODEC})${EMON_CLOCK},..
+
+#DB# echo "addr=${ADDR} port=${PORT} codec=${CODEC}"
+
+AUDIOCAPT="audiocapt -C${EMON_CLOCK} -R${EMON_FREQ} -f${AUDIOCAPT_CODEC} -c1 -r${AUDIOCAPT_DSP_RATE} -m${AUDIOCAPT_MARKER}"
+RTPSEND="rtpsend -A${ADDR} -P${PORT} -y${RTPENC_PAYLOAD}"
+
+echo ""
+echo "== PIPE LINE START =="
+echo "${AUDIOCAPT}|${RTPSEND}"
+echo "== PIPE LINE END =="
+
+${AUDIOCAPT}|${RTPSEND}&
+CHILD_PID=$!;
+#DB# echo "pid $$,${CHILD_PID}"
+#TODO: delete "kill -KILL ${CHILD_PID};"
+TRAP="kill ${CHILD_PID};kill -KILL ${CHILD_PID};${TRAP}"
+trap "${TRAP}" 0 1 2 15
+sleep 1
+echo "=== hit enter for exit ===" 
+read TMP;
+kill $$

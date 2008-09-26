@@ -1,0 +1,75 @@
+doc/dspcap.txt
+
+サウンドカードの動作確認情報です。
+これらは1ch16bit8KHzでテストした結果です。
+書式は
+
+<サウンドカード(チップ)>
+  <OS> / <ドライバー>
+  </dev/sndstatによるサウンドカード情報>
+    <録音,再生,Full-duplexの対応>
+
+となっています。
+録音、再生の対応の後にある
+(ignore DSP_SETFRAGMENT) 
+は、マイク/スピーカとaudiocapt/audioplayとの間の遅延時間を
+小さくできないことを意味しています。
+
+
+Intel 82801BA (ICH2)
+  FreeBSD 4.4-Release / FreeBSD Audio Driver (newpcm)
+  pcm0: <Intel 82801BA (ICH2)> (1p/2r/0v channels duplex)
+    Record   N/A
+    Playback OK (ignore DSP_SETFRAGMENT)
+
+
+VIA VT82C686A AC97 audio
+  FreeBSD 4.2-RELEASE / OSS/FreeBSD 3.9.4b (C) 4Front Technologies 1996-2000
+  VIA VT82C686A AC97 audio controller at 0xd800 irq 10
+  Audio devices:
+  0: VIA VT82C686 AC97 controller (DUPLEX)
+  1: VIA VT82C686 AC97 controller (shadow) (DUPLEX)
+    Record   OK  (ignore DSP_SETFRAGMENT)
+    Playback OK  (ignore DSP_SETFRAGMENT)	
+    Full-duplex OK
+
+
+AudioPCI ES1371-A
+  FreeBSD 4.4-Release / FreeBSD Audio Driver (newpcm)
+  pcm0: <AudioPCI ES1371-A> (1p/1r/0v channels duplex)
+    Record   OK
+    Playback OK   
+    Full-duplex OK
+
+
+ESS Technology Maestro-2E
+  FreeBSD 4.3-RELEASE / OSS/FreeBSD 3.9.5e (C) 4Front Technologies 1996-2001
+  ESS Maestro at 0xee00 irq 11
+  Audio devices:
+  0: ESS Maestro-2E Rev. Q (DUPLEX)
+  1: ESS Maestro-2E Rev. Q (playback only)
+    Record   OK  
+    Playback OK  (ignore DSP_SETFRAGMENT) 
+    Full-duplex OK
+
+  FreeBSD 4.3-RELEASE / FreeBSD Audio Driver (newpcm) Sep  5 2001 17:15:35
+  pcm0: <ESS Technology Maestro-2E> (4p/0r channels duplex)
+    Record   N/A
+    Playback OK
+
+
+SB DSP 4.13
+  FreeBSD 4.2-RELEASE / FreeBSD Audio Driver (newpcm) Dec  1 2000 16:23:40
+  pcm0: <SB DSP 4.13> (1p/1r channels duplex)
+    Record   OK  (16bit N/A   8bit OK)
+    Playback OK  
+    Full-duplex N/A
+
+
+Yamaha OPL-SAx
+  FreeBSD 4.3-RELEASE / FreeBSD Audio Driver (newpcm) Oct 12 2001 12:59:56
+  pcm0: <Yamaha OPL-SAx> (1p/1r channels duplex)
+    Record   OK
+    Playback OK   
+    Full-duplex N/A
+

@@ -1,0 +1,51 @@
+* pipe を通るヘッダ構造の修正
+  独自方式から RTP ライクな物に変更(但しサイズが付く)
+
+  rtpsend は，pipe を通ってきたヘッダからサイズを省いたものを
+  IPパケットに入れてそのまま送信する
+
+  rtprecv は，受け取ったパケットの RTPヘッダ以降をそのまま取り出す．
+  ただし，サイズを先頭に付ける
+
+* ソースコード全面的に書き直し
+
+  jpegcapt
+  fecenc
+  rtpsend
+  udpsend
+  
+  udprecv
+  rtprecv
+  fecdec
+  jpegplay
+
+* [udp|rtp]send は複数の送信先を指定可能に
+
+* [udp|rtp]rect は複数の受信アドレスを指定可能に (* でも可能)
+
+
+* pipe を通る時の単位
+
+F = per jpeg-Frame block
+P = per Packet block
+
+  --->1 [name] 2--->
+
+[name]が 1 形式の情報を受取可能
+[name]が 2 形式の情報を送出可能
+
+
+** 送信系
+        jpegcapt   F--->
+        filerepeat F--->
+ --->F  fecenc     P--->
+ -->PF  udpsend    P- ->
+ -->PF  rtpsend    P- ->
+ --->F  sctpsend   p- ->
+
+** 受信系
+ - ->P  udprecv    P--->
+ - ->P  rtprecv    P--->
+ - ->P  sctprecv   F--->
+ --->P  fecdec     F--->
+ -->PF  jpegplay

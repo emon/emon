@@ -1,0 +1,71 @@
+gcc -o fecenc.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c fecenc.c
+gcc -o pipe_hd.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c pipe_hd.c
+gcc -o rs_emon.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c rs_emon.c
+gcc -o libfec.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c libfec.c
+gcc -o timeval.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c timeval.c
+gcc -o debug.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c debug.c
+gcc -o fecenc  fecenc.o pipe_hd.o rs_emon.o libfec.o timeval.o debug.o -lm
+gcc -o rtpenc.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c rtpenc.c
+gcc -o rtp_hd.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c rtp_hd.c
+gcc -o rtpenc  rtpenc.o rtp_hd.o debug.o timeval.o pipe_hd.o
+gcc -o udpsend.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c udpsend.c
+gcc -o sendsock_setup.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c sendsock_setup.c
+gcc -o udpsend  udpsend.o debug.o timeval.o pipe_hd.o sendsock_setup.o
+gcc -o udprecv.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c udprecv.c
+gcc -o multicast.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c multicast.c
+gcc -o udprecv  udprecv.o debug.o pipe_hd.o multicast.o
+gcc -o rtpdec.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c rtpdec.c
+gcc -o rtpdec  rtpdec.o rtp_hd.o debug.o timeval.o pipe_hd.o
+gcc -o fecdec.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c fecdec.c
+gcc -o fec_decode.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c fec_decode.c
+gcc -o fecdec  fecdec.o pipe_hd.o rs_emon.o libfec.o fec_decode.o timeval.o debug.o -lm
+gcc -o jpegplay.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c jpegplay.c
+gcc -o decoder_buf.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c decoder_buf.c
+(cd jpegbuf; make)
+gcc -g -Wall -O2 -I. -I/usr/local/include -c bufio.c
+gcc -g -Wall -O2 -I. -I/usr/local/include -c jbufdst.c
+gcc -g -Wall -O2 -I. -I/usr/local/include -c jbufsrc.c
+gcc -g -Wall -O2 -I. -I/usr/local/include -c jmemsrc.c
+ar -rv libjpegbuf.a bufio.o jbufdst.o jbufsrc.o jmemsrc.o
+a - bufio.o
+a - jbufdst.o
+a - jbufsrc.o
+a - jmemsrc.o
+ranlib libjpegbuf.a
+gcc -o jpegplay  -L/usr/local/lib -Wl,-rpath,/usr/local/lib -lSDL-1.1 -pthread jpegplay.o decoder_buf.o pipe_hd.o debug.o timeval.o  -L/usr/local/lib -ljpeg -L./jpegbuf -ljpegbuf
+gcc -o rtpsend.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H -DRTPSEND  -I/usr/local/include -I./jpegbuf -c rtpenc.c
+gcc -o rtpsend  rtpsend.o rtp_hd.o debug.o timeval.o pipe_hd.o sendsock_setup.o
+gcc -o rtprecv.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H -DRTPRECV  -I/usr/local/include -I./jpegbuf -c rtpdec.c
+gcc -o rtprecv  rtprecv.o rtp_hd.o debug.o timeval.o pipe_hd.o multicast.o
+gcc -o jpegcat.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c jpegcat.c
+gcc -o jpegcat  jpegcat.o pipe_hd.o debug.o
+gcc -o pipeerr.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c pipeerr.c
+gcc -o pipeerr  pipeerr.o pipe_hd.o
+gcc -o pipesave.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c pipesave.c
+gcc -o pipesave  pipesave.o pipe_hd.o debug.o
+gcc -o pipeinfo.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c pipeinfo.c
+gcc -o pipeinfo  pipeinfo.o pipe_hd.o debug.o
+gcc -o filerepeat.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c filerepeat.c
+gcc -o filerepeat  filerepeat.o pipe_hd.o debug.o timeval.o
+gcc -o jpegsave.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c jpegsave.c
+gcc -o jpegsave  jpegsave.o pipe_hd.o
+gcc -o audiocapt.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c audiocapt.c
+gcc -o aucodec.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c aucodec.c
+gcc -o aucodec_l8l16.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c aucodec_l8l16.c
+gcc -o aucodec_dvi4.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c aucodec_dvi4.c
+gcc -o aucodec_pcmu.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c aucodec_pcmu.c
+gcc -o time.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c time.c
+gcc -o audiocapt  audiocapt.o debug.o pipe_hd.o aucodec.o aucodec_l8l16.o aucodec_dvi4.o aucodec_pcmu.o time.o
+gcc -o audioplay.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c audioplay.c
+gcc -o audioplay  audioplay.o debug.o pipe_hd.o aucodec.o aucodec_l8l16.o aucodec_dvi4.o aucodec_pcmu.o timeval.o
+gcc -o audiocaptplay.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c audiocaptplay.c
+gcc -o audiocaptplay  audiocaptplay.o debug.o
+gcc -o jpegcapt.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c jpegcapt.c
+gcc -o capture.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c capture.c
+gcc -o jpegcapt  jpegcapt.o debug.o pipe_hd.o capture.o timeval.o -L/usr/local/lib -ljpeg -L./jpegbuf -ljpegbuf
+gcc -o ntspwait.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c ntspwait.c
+gcc -o ntsputil.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c ntsputil.c
+gcc -o net_addrcmp.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c compat/net_addrcmp.c
+gcc -o ntspwait  ntspwait.o ntsputil.o net_addrcmp.o
+gcc -o ntspcall.o -Wall -DDEBUG -DNO_PRINT -I/usr/local/include -I/usr/local/include/SDL11 -D_REENTRANT -D_THREAD_SAFE -g -O2  -DHAVE_CONFIG_H  -I/usr/local/include -I./jpegbuf -c ntspcall.c
+gcc -o ntspcall  ntspcall.o ntsputil.o net_addrcmp.o

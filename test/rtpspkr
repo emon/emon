@@ -1,0 +1,128 @@
+#!/bin/sh
+
+TAB="        "
+NEWLINE="`echo`"
+    
+DEFAULT_PATH_LIBEXEC_EMON="../src"
+DEFAULT_DSP_PLAY="/dev/dsp"
+DEFAULT_CODEC="pcmu"
+DEFAULT_LOCKFILE="rtpmic.dsp.lock"
+
+PATH_LIBEXEC_EMON=${PATH_LIBEXEC_EMON-${DEFAULT_PATH_LIBEXEC_EMON}}
+DSP_PLAY=${DSP_PLAY-${DEFAULT_DSP_PLAY}}
+CODEC=${CODEC-${DEFAULT_CODEC}}
+LOCKFILE=${LOCKFILE-${DEFAULT_LOCKFILE}}
+
+
+codec_set() {
+    case "$1" in
+        "pcmu")
+		EMON_CLOCK="8000";EMON_FREQ="160";
+
+                AUDIOCAPT_DSP_RATE="8000";AUDIOCAPT_DSP_CH="1";
+		AUDIOCAPT_CODEC="pcmu";AUDIOCAPT_MARKER="1";
+
+                AUDIOPLAY_DSP_RATE="8000";AUDIOPLAY_DSP_CH="1";
+		AUDIOPLAY_CODEC="pcmu";AUDIOPLAY_MARKER="0";
+
+		RTPENC_PAYLOAD="0";RTPDEC_PAYLOAD="0"
+		;;
+        "dvi4")
+		EMON_CLOCK="8000";EMON_FREQ="160";
+
+                AUDIOCAPT_DSP_RATE="8000";AUDIOCAPT_DSP_CH="1";
+		AUDIOCAPT_CODEC="dvi4";AUDIOCAPT_MARKER="1";
+
+                AUDIOPLAY_DSP_RATE="8000";AUDIOPLAY_DSP_CH="1";
+		AUDIOPLAY_CODEC="dvi4";AUDIOPLAY_MARKER="0";
+
+		RTPENC_PAYLOAD="5";RTPDEC_PAYLOAD="5"
+		;;
+        * )
+		ERROR="${ERROR}${TAB}codec($1) is not supported.${NEWLINE}"
+		;;
+    esac
+}
+
+src_set(){
+    SRC_ADDR=${1}
+    SRC_PORT=${2-"-1"}
+    if [ ${SRC_PORT} -le 0 -o ${SRC_PORT} -ge 65536 ];then
+	ERROR="${ERROR}  port ($2) is invalid ${NEWLINE}"
+    fi
+}
+
+exitrtpspkr(){
+    EXIT="$1"
+    if [ $DSPLOCK -eq 1 ];then
+	unlink "${LOCKFILE}" 2>/dev/null;
+    fi
+    exit ${EXIT};
+}
+
+argcnt(){
+    ARGV="$1"
+    CNT=0;
+    for ARG in $ARGV;do
+	CNT=`expr $CNT + 1`;
+    done
+#    echo "DEBUG $CNT"
+}
+
+inputarg(){
+	while [ 1 ];do
+	    echo -n ">"
+	    read INLINE;
+	    if [ ! $? -eq 0 ];then #EOF
+		"receive EOF,Bye."
+		exitrtpspkr 1;
+	    fi
+	    argcnt "$INLINE"
+	    if [ $CNT -eq 2 -o $CNT -eq 3 ];then
+	        set -- $INLINE
+		ADDR=$1;
+		PORT=$2;
+		CODEC=${3-${CODEC}};
+		ERROR=""
+		codec_set $CODEC
+		src_set   $ADDR $PORT
+		if [ "x${ERROR}" != "x" ];then
+		    echo "ERROR:"
+		    echo "${ERROR}"
+		else
+		    return;
+		fi
+	    else
+		echo "\"$INLINE\" is not acceptable."
+		continue;
+	    fi
+done
+
+
+}
+
+#MAIN
+export PATH="${PATH_LIBEXEC_EMON}:${PATH}"
+
+echo "Please inform recieve host ,port and codec"
+echo "usage:"
+echo ">hostaddr udpport [codec]"
+echo "example:"
+echo ">130.54.22.88 18802"
+echo "or"
+echo ">130.54.22.88 18802 dvi4"
+
+inputarg # set valid ${ADDR} ,${PORT} and (by ${CODEC})${EMON_CLOCK},..
+
+#DB#
+echo "addr=${ADDR} port=${PORT} codec=${CODEC}"
+
+AUDIOPLAY="audioplay -C${EMON_CLOCK} -R${EMON_FREQ} -f${AUDIOPLAY_CODEC} -c1 -r${AUDIOPLAY_DSP_RATE} -m${AUDIOPLAY_MARKER}"
+RTPRECV="rtprecv -A${ADDR} -P${PORT} -y${RTPDEC_PAYLOAD}"
+
+echo ""
+echo "== PIPE LINE START =="
+echo "${RTPRECV}|${AUDIOPLAY}"
+echo "== PIPE LINE END =="
+
+${RTPRECV}|${AUDIOPLAY}

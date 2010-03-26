@@ -30,7 +30,8 @@
 #define DEF_JPEGCAPT_QUALITY	75
 #define DEF_JPEGCAPT_DSIZE	14400	/* 1200bytes * 12packets */
 
-#define	DEF_JPEGPLAY_DSIZE      14400
+/*#define	DEF_JPEGPLAY_DSIZE      14400*/
+#define	DEF_JPEGPLAY_DSIZE      (1024*200)
 #define DEF_JPEGPLAY_DELAY_LIMIT 200    /* msec */
 
 #endif				/* _def_value_h */

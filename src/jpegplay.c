@@ -17,7 +17,7 @@
  */
 
 #define REALTIME_PLAY
-#define USE_JPEG_MEM_SRC
+/*#define USE_JPEG_MEM_SRC*/
 #define USE_YUV_OVERLAY		/* libjpeg outputs YCbCr, SDL handle YUV
 				 * overlay */
 

@@ -9,7 +9,7 @@
  *            KASAMATSU Ken-ichi <kasamatu@lab1.kuis.kyoto-u.ac.jp> 
  * started:   2002/01/24
  *
- * $Id: time.c,v 1.1 2008/09/26 15:10:34 emon Exp $
+ * $Id: time.c,v 1.1.1.1 2002/08/10 18:53:22 emon Exp $
  */
 
 #include <sys/time.h>
@@ -148,8 +148,8 @@ int             time_cmptv(const time_tv_t a,const time_tv_t b){
 }
 void            time_htontv(u_int8_t *dst,const time_tv_t src){
 	u_int32_t       *sec,*usec;
-	(u_int8_t*)sec =dst;
-	(u_int8_t*)usec=dst+sizeof(u_int32_t);
+	sec =(u_int32_t*)dst;
+	usec=(u_int32_t*)(dst+sizeof(u_int32_t));
 	*sec =htonl(src.sec);
 	*usec=htonl(src.usec);
 	return;
@@ -157,8 +157,8 @@ void            time_htontv(u_int8_t *dst,const time_tv_t src){
 time_tv_t       time_ntohtv(u_int8_t *src){
 	time_tv_t tv;
 	u_int32_t       *sec,*usec;
-	(u_int8_t*)sec =src;
-	(u_int8_t*)usec=src+sizeof(u_int32_t);
+	sec = (u_int32_t*)src;
+	usec=(u_int32_t*)(src+sizeof(u_int32_t));
 	tv.sec =ntohl(*sec);
 	tv.usec=ntohl(*usec);
 	return tv;

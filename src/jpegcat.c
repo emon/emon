@@ -8,7 +8,7 @@
  * author(s): Yasutaka Atarashi <atarashi@mm.media.kyoto-u.ac.jp>
  * started:   2001/06/16
  *
- * $Id: jpegcat.c,v 1.1 2008/09/26 15:10:34 emon Exp $
+ * $Id: jpegcat.c,v 1.1.1.1 2002/08/10 18:53:21 emon Exp $
  */
 
 #include <stdlib.h>
@@ -23,7 +23,7 @@
 #include "pipe_hd.h"
 #include "debug.h"
 
-#define BUFFERSIZE (1024 * 100)
+#define BUFFERSIZE (1024 * 200)
 #define FILE_MAX 417
 
 #define FMT_MEDIA "%04d.jpg"
@@ -31,6 +31,7 @@
 static struct opt_values {
 	char           *fmt_media;
 	int             clock, freq;
+	int		framecnt;
 }               OPT;
 
 int 
@@ -38,7 +39,7 @@ opt_etc(int argc, char *argv[])
 {
 	int             ch;
 	char           *temp;
-	char           *opts = "m:C:R:D:";
+	char           *opts = "m:C:R:n:D:";
 	char           *helpmes =
 	"usage : %s [-m fmt_media] [-C clock] [-R freq]"
 	" [-D verbose_level]\n"
@@ -46,6 +47,7 @@ opt_etc(int argc, char *argv[])
 	" m <str> : media filename format (e.g. %%04d.jpg)\n"
 	" C <n>   : clock base\n"
 	" R <n>   : frequency\n"
+	" n <n>   : frame counter (0=endless)\n"
 	"<debug>\n" 
     " D <n>   : debug level\n"
 	               ;
@@ -54,6 +56,7 @@ opt_etc(int argc, char *argv[])
 	OPT.fmt_media = FMT_MEDIA;
 	OPT.clock = DEF_EMON_CLOCK;
 	OPT.freq = DEF_EMON_FREQ;
+	OPT.framecnt = 0;
 
 	/* get environment variables */
 	if ((temp = getenv("EMON_CLOCK")) != NULL)
@@ -75,6 +78,9 @@ opt_etc(int argc, char *argv[])
 			break;
 		case 'D':
 			debug_level = atoi(optarg);
+			break;
+		case 'n':
+			OPT.framecnt = atoi(optarg);
 			break;
 		default:
 			fprintf(stderr, helpmes, argv[0]);
@@ -159,6 +165,10 @@ main(int argc, char *argv[])
 		pipe_blocked_write_block(STDOUT, p_hd, buffer);
 
 		timestamp += OPT.freq;
+
+		if (OPT.framecnt == 0) continue; /* endless loop */
+		OPT.framecnt--;
+		if (OPT.framecnt == 0) break;
 	}
 
 	return 0;

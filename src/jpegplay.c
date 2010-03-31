@@ -17,7 +17,7 @@
  */
 
 #define REALTIME_PLAY
-/*#define USE_JPEG_MEM_SRC*/
+#define USE_JPEG_MEM_SRC
 #define USE_YUV_OVERLAY		/* libjpeg outputs YCbCr, SDL handle YUV
 				 * overlay */
 
@@ -58,7 +58,7 @@
 /* in ./jpegbuf/jbufsrc.c */
 #ifdef USE_JPEG_MEM_SRC
 extern          GLOBAL(JOCTET *) jpeg_mem_src_init(j_decompress_ptr, size_t);
-extern          GLOBAL(void) jpeg_mem_src(j_decompress_ptr, buf_t *);
+extern          GLOBAL(void) jpeg_mem_src(j_decompress_ptr, unsigned char * inbuffer, unsigned long insize);
 #else
 extern          GLOBAL(void) jpeg_buf_src(j_decompress_ptr, buf_t *);
 #endif
@@ -117,7 +117,6 @@ void
 wait4rtdisplay(struct timeval *tv_start,u_int64_t ts_limit){
 	int64_t ts_diff;
 	struct timeval  now;
-	static int  cnt=0;
 
 	while(1){
 	  gettimeofday(&now, NULL);		
@@ -163,10 +162,10 @@ my_SDL_CreateYUVOverlay(int w, int h, SDL_Surface * display)
 		//SDL_YUY2_OVERLAY,
 		//SDL_UYVY_OVERLAY,
 		//SDL_YVYU_OVERLAY,
-		NULL,
+		0,
 	};
 
-	for (yuv_fmt = 0; YUV_FMT[yuv_fmt] != NULL; yuv_fmt++) {
+	for (yuv_fmt = 0; YUV_FMT[yuv_fmt] != 0; yuv_fmt++) {
 		sdl_overlay = SDL_CreateYUVOverlay(w, h,
 						 YUV_FMT[yuv_fmt], display);
 		if (sdl_overlay == NULL)
@@ -177,8 +176,8 @@ my_SDL_CreateYUVOverlay(int w, int h, SDL_Surface * display)
 			SDL_FreeYUVOverlay(sdl_overlay);
 		}
 	}
-	if (YUV_FMT[yuv_fmt] == NULL) {	/* cannot hardware overlay */
-		for (yuv_fmt = 0; YUV_FMT[yuv_fmt] != NULL; yuv_fmt++) {
+	if (YUV_FMT[yuv_fmt] == 0) {	/* cannot hardware overlay */
+		for (yuv_fmt = 0; YUV_FMT[yuv_fmt] != 0; yuv_fmt++) {
 			sdl_overlay =
 				SDL_CreateYUVOverlay(w, h,
 						 YUV_FMT[yuv_fmt], display);
@@ -244,13 +243,11 @@ jpeg_display_yuv(int argc, char *argv[])
 	decoder_buf_read();	/* pipe -> buffer */
 	read_size = decoder_buf_get(jpeg_buf, JPEG_BUF_MAX,&ts_nowblk);	/* buffer -> mem */
 
-	jpeg_src_buf.writecnt = read_size;
-	jpeg_src_buf.readcnt = 0;
 #ifdef USE_JPEG_MEM_SRC		/* emon's original */
-	jpeg_mem_src(&cinfo, &jpeg_src_buf);
+	jpeg_mem_src(&cinfo, jpeg_buf, read_size);
 #else				/* Mr.Okamura's */
 	jpeg_src_buf.buf = jpeg_buf;
-	jpeg_buf_src(&cinfo, &jpeg_src_buf);
+	jpeg_buf_src(&cinfo, jpeg_buf, read_size);
 #endif
 	jpeg_read_header(&cinfo, TRUE);
 	w = cinfo.image_width;
@@ -332,13 +329,11 @@ jpeg_display_yuv(int argc, char *argv[])
 			//decoder_buf_read();	/* check new data */
 		}
 #endif
-		jpeg_src_buf.writecnt = read_size;
-		jpeg_src_buf.readcnt = 0;
 #ifdef USE_JPEG_MEM_SRC
-		jpeg_mem_src(&cinfo, &jpeg_src_buf);
+		jpeg_mem_src(&cinfo, jpeg_buf, read_size);
 #else
 		jpeg_src_buf.buf = jpeg_buf;
-		jpeg_buf_src(&cinfo, &jpeg_src_buf);
+		jpeg_buf_src(&cinfo, jpeg_buf, read_size);
 #endif
 		jpeg_read_header(&cinfo, TRUE);
 
@@ -555,13 +550,11 @@ jpeg_display_rgb(int argc, char *argv[])
 	decoder_buf_read();
 	read_size = decoder_buf_get(jpeg_buf, JPEG_BUF_MAX,&ts_nowblk);
 
-	jpeg_src_buf.writecnt = read_size;
-	jpeg_src_buf.readcnt = 0;
 #ifdef USE_JPEG_MEM_SRC
-	jpeg_mem_src(&cinfo, &jpeg_src_buf);	/* read from memory */
+	jpeg_mem_src(&cinfo, jpeg_buf, read_size);	/* read from memory */
 #else
 	jpeg_src_buf.buf = jpeg_buf;
-	jpeg_buf_src(&cinfo, &jpeg_src_buf);	/* read from memory */
+	jpeg_buf_src(&cinfo, jpeg_buf, read_size);	/* read from memory */
 #endif
 
 	jpeg_read_header(&cinfo, TRUE);
@@ -692,13 +685,11 @@ jpeg_display_rgb(int argc, char *argv[])
 		} else if (read_size == -2) {
 		    break;	/* end of all files */
 		}
-		jpeg_src_buf.writecnt = read_size;
-		jpeg_src_buf.readcnt = 0;
 #ifdef USE_JPEG_MEM_SRC
-		jpeg_mem_src(&cinfo, &jpeg_src_buf);
+		jpeg_mem_src(&cinfo, jpeg_buf, read_size);
 #else
 		jpeg_src_buf.buf = jpeg_buf;
-		jpeg_buf_src(&cinfo, &jpeg_src_buf);
+		jpeg_buf_src(&cinfo, jpeg_buf, read_size);
 #endif
 		jpeg_read_header(&cinfo, TRUE);
 
@@ -976,7 +967,7 @@ sigint_quit(void)
 {
 	int             pid = getpid();
 
-	printf("\n--- %jpegplay (%5d) caught SIGINT ---", pid);
+	printf("\n--- jpegplay (%5d) caught SIGINT ---", pid);
 	statistics_print(&STAT);
 	printf("\n---\n");
 

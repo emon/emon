@@ -140,6 +140,3 @@ ntspwait: ntspwait.o ntsputil.o net_addrcmp.o
 
 ntspcall: ntspcall.o ntsputil.o net_addrcmp.o
 	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
-
-.c.o:
-	$(CC) -o $(.TARGET) $(CFLAGS) $(CMPFLAGS) $(INCLUDES) -c $(.IMPSRC)

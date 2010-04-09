@@ -32,10 +32,7 @@ TARGETS=fecenc rtpenc udpsend \
 	\
 	jpegcat pipeerr pipesave pipeinfo filerepeat jpegsave\
 	\
-	audiocapt audioplay audiocaptplay \
-	jpegcapt \
-	\
-	ntspwait ntspcall
+	audiocapt audioplay audiocaptplay
 
 all: $(TARGETS)
 

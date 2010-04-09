@@ -22,6 +22,8 @@
 #include <arpa/inet.h>
 #include <sys/time.h>
 
+#include <wlresvapi.h>
+
 #include "def_value.h"
 #include "sendsock_setup.h"
 #include "rtp_hd.h"		/* RTP_HEADER_LEN */
@@ -39,6 +41,9 @@ static struct opt_values {	/* set by getopt */
 	int             sfd;	/* send socket */
 	int		msfd[MAX_SFD]; /* multiple send sockets */
 	int		nsfd;	/* number of msfd */
+
+	int		lambdano_enable; /* reserve lambdano or not */
+	int		lambdano; /* lambdano to resere */
 }               OPT;
 
 struct timeval  total_start, total_end;
@@ -87,13 +92,13 @@ opt_etc(int argc, char *argv[])
 	char           *mdst[MAX_SFD];
 	int		ndst = 0;
 	
-	char           *opts = "C:R:L:N:A:P:a:p:V:t:I:D:d:e:s123";
+	char           *opts = "C:R:L:N:A:P:a:p:V:t:I:D:d:e:s123l:";
 	char           *helpmes =
 	"usage : %s [-C <clock>] [-R <freq>] [-L <packet len>]\n"
 	" [-N <n>] [-t <ttl>] [-I <interface>]\n"
 	" [-A <IP addr>] [-P <port>] [-a <src IP addr>] [-p <src port>]\n"
 	" [-V <IP-ver>] [-D <debug level>] [-e <error rate>] [-123s]\n"
-	" [-d <dst IP><%%interface></port> [-d ..]]\n"
+	" [-d <dst IP><%%interface></port> [-l lambdano] [-d ..]]\n"
 	" options\n"
 	" <general>\n"
 	"  C <n>   : clock base\n"
@@ -115,6 +120,7 @@ opt_etc(int argc, char *argv[])
 	"  e <n>   : error rate (100 -> 1/100, 1000 -> 1/1000 ...)\n"
 	"  1/2/3   : packet rate normal/double/triple\n"
 	"  s       : diplay time of all packets\n"
+	"  l <n>   : lambdano to reserve\n"
 	               ;
 	/* set default value */
 	addr = DEF_RTPSEND_ADDR;
@@ -213,6 +219,10 @@ opt_etc(int argc, char *argv[])
 		case '3':
 			OPT.send_double = ch - '0';
 			break;
+		case 'l':
+			OPT.lambdano = atoi(optarg);
+			OPT.lambdano_enable = 1;
+			break;
 		default:
 			fprintf(stderr, helpmes, argv[0]);
 			return -1;
@@ -221,6 +231,35 @@ opt_etc(int argc, char *argv[])
 	OPT.sfd = sendsock_setup(addr, port, ifname,
 				  src_addr, src_port, ttl, ipver);
 	d_printf("connect addr=%s port=%d\n", addr, port);
+
+	if (OPT.lambdano_enable) {
+		struct wl_resv resv;
+		struct wl_reserve_status status;
+		socklen_t status_len;
+		int ret;
+
+		resv.wlr_flags = WL_RESV_FLAG_SEND;
+		resv.wlr_lambda_no = OPT.lambdano;
+		ret = setsockopt (OPT.sfd, IPPROTO_IP, WL_ADD_RESV, &resv,
+				  sizeof (resv));
+		if (ret == -1) {
+			d_printf ("setsockopt WL_ADD_RESV error");
+			exit (-1);
+		}
+
+		status_len = sizeof (status);
+		ret = getsockopt (OPT.sfd, IPPROTO_IP, WL_RESERVE_STATUS,
+				  &status, &status_len);
+		if (ret == -1) {
+			d_printf ("getsockopt WL_RESERVE_STATUS error");
+			exit (-1);
+		}
+
+		if (status.status != WL_RESV_STATUS_RESERVED){
+			d_printf ("can't reserve lambdano");
+			exit (-1);
+		}
+	}
 
 	OPT.nsfd = ndst;
 	while (--ndst >= 0){

@@ -230,22 +230,26 @@ util_make_copy_socket(int so)
 	newso = util_make_sametype_socket(so, addr, &addrlen);
 	if(newso < 0) return newso;
 
+#ifdef SO_REUSEPORT
 	opt = 1;
 	error = setsockopt(so, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 	if(error) return error;
 	opt = 1;
 	error = setsockopt(newso, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 	if(error) return error;
+#endif /* SO_REUSEPORT */
 
 	error = bind(newso, addr, addrlen);
 	if(error) return error;
 
+#ifdef SO_REUSEPORT
 	opt = 0;
 	error = setsockopt(so, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 	if(error) return error;
 	opt = 0;
 	error = setsockopt(newso, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(opt));
 	if(error) return error;
+#endif /* SO_REUSEPORT */
 
 	return newso;
 }

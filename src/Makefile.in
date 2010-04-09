@@ -68,75 +68,75 @@ depend:
 	makedepend -- $(CFLAGS) -- *.c
 
 fecenc: fecenc.o pipe_hd.o rs_emon.o libfec.o timeval.o debug.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC) -lm
+	$(CC) -o $@ $(LDFLAGS) $^ -lm
 
 rtpenc: rtpenc.o rtp_hd.o debug.o timeval.o pipe_hd.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 udpsend: udpsend.o debug.o timeval.o pipe_hd.o sendsock_setup.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 
 rtpsend.o: rtpenc.c
-	$(CC) -o $(.TARGET) $(CFLAGS) -DRTPSEND $(CMPFLAGS) $(INCLUDES) -c rtpenc.c
+	$(CC) -o $@ $(CFLAGS) -DRTPSEND $(CMPFLAGS) $(INCLUDES) -c rtpenc.c
 
 rtpsend: rtpsend.o rtp_hd.o debug.o timeval.o pipe_hd.o sendsock_setup.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 rtprecv.o: rtpdec.c
-	$(CC) -o $(.TARGET) $(CFLAGS) -DRTPRECV $(CMPFLAGS) $(INCLUDES) -c rtpdec.c
+	$(CC) -o $@ $(CFLAGS) -DRTPRECV $(CMPFLAGS) $(INCLUDES) -c rtpdec.c
 
 rtprecv: rtprecv.o rtp_hd.o debug.o timeval.o pipe_hd.o multicast.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 
 udprecv: udprecv.o debug.o pipe_hd.o multicast.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 rtpdec: rtpdec.o rtp_hd.o debug.o timeval.o pipe_hd.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 fecdec: fecdec.o pipe_hd.o rs_emon.o libfec.o fec_decode.o timeval.o debug.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC) -lm
+	$(CC) -o $@ $(LDFLAGS) $^ -lm
 
 jpegplay: jpegplay.o decoder_buf.o pipe_hd.o debug.o timeval.o decoder_buf.o
 	(cd jpegbuf; make)
-	$(CC) -o $(.TARGET) $(LDFLAGS) @SDL_LIBS@ $(.ALLSRC) \
+	$(CC) -o $@ $(LDFLAGS) @SDL_LIBS@ $^ \
 	$(JPEGLIB)
 
 
 jpegcat: jpegcat.o pipe_hd.o debug.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 pipesave: pipesave.o pipe_hd.o debug.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 jpegsave: jpegsave.o pipe_hd.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 pipeerr: pipeerr.o pipe_hd.o 
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 pipeinfo: pipeinfo.o pipe_hd.o debug.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 filerepeat: filerepeat.o pipe_hd.o debug.o timeval.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 audiocapt: audiocapt.o debug.o pipe_hd.o aucodec.o aucodec_l8l16.o aucodec_dvi4.o aucodec_pcmu.o time.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 audioplay: audioplay.o debug.o pipe_hd.o aucodec.o aucodec_l8l16.o aucodec_dvi4.o aucodec_pcmu.o timeval.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 audiocaptplay: audiocaptplay.o debug.o 
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 jpegcapt: jpegcapt.o debug.o pipe_hd.o capture.o timeval.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC) $(JPEGLIB)
+	$(CC) -o $@ $(LDFLAGS) $^ $(JPEGLIB)
 
 ntspwait: ntspwait.o ntsputil.o net_addrcmp.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^
 
 ntspcall: ntspcall.o ntsputil.o net_addrcmp.o
-	$(CC) -o $(.TARGET) $(LDFLAGS) $(.ALLSRC)
+	$(CC) -o $@ $(LDFLAGS) $^

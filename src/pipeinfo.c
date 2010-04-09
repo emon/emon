@@ -19,7 +19,7 @@
 #include <fcntl.h>
 #include <string.h>
 #include <ctype.h>
-#include <machine/limits.h>
+#include <limits.h>
 
 #include "pipe_hd.h"
 #include "rtp_hd.h"

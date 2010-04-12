@@ -32,6 +32,8 @@ static struct opt_values {	/* set by getopt */
 	char           *ifname;
 	int		ipver;
 	int		plen;
+	char           *raddr;
+	int             rport;
 }               OPT;
 
 int             debug_level;
@@ -41,14 +43,16 @@ opt_etc(int argc, char *argv[])
 {
 	int             ch;	/* for getopt */
 	char           *temp;
-	char           *opts = "A:P:V:I:D:";
+	char           *opts = "A:P:V:I:D:a:p:";
 	char           *helpmes =
 	"usage : %s [-A <IP-address>] [-P <port>] [-I <interface>]"
-	" [-V <IP-ver>] [-D <debug_level>]\n"
+	" [-V <IP-ver>] [-D <debug_level>] [-a <IP-address>] [-p <port>]\n"
 	" options\n"
 	" <network>\n"
-	"  A <s>   : IP address\n"
-	"  P <n>   : port #\n"
+	"  A <s>   : local IP address\n"
+	"  P <n>   : local port #\n"
+	"  a <s>   : remote IP address\n"
+	"  p <n>   : remote port #\n"
 	"  I <s>   : multicast interface\n"
 	"  V <n>   : IP version # (4 or 6)\n"
 	" <debug>\n"
@@ -60,6 +64,8 @@ opt_etc(int argc, char *argv[])
 	OPT.ifname = DEF_RTPRECV_IF;
 	OPT.plen = DEF_EMON_PLEN;
 	OPT.ipver = 0;
+	OPT.raddr = NULL;
+	OPT.rport = 0;
 	
 	/* get environment variables */
 
@@ -88,6 +94,12 @@ opt_etc(int argc, char *argv[])
 			break;
 		case 'D':
 			debug_level = atoi(optarg);
+			break;
+		case 'a':
+			OPT.raddr = optarg;
+			break;
+		case 'p':
+			OPT.rport = atoi(optarg);
 			break;
 		default:
 			fprintf(stderr, helpmes, argv[0]);
@@ -124,6 +136,19 @@ main(int argc, char *argv[])
 #endif
 
 	mfd = recvsock_setup(OPT.addr, OPT.port, OPT.ifname, OPT.ipver);
+	if (OPT.raddr) {
+		struct sockaddr_in sin;
+		socklen_t slen = sizeof (sin);
+
+		bzero(&sin, sizeof (sin));
+		sin.sin_family = AF_INET;
+		sin.sin_port = htons (OPT.rport);
+		inet_pton (AF_INET, OPT.raddr, &sin.sin_addr);
+		if (connect(mfd, (struct sockaddr *)&sin, slen) != 0) {
+			e_printf ("\ncannot connect\n");
+			return -1;
+		}
+	}
 
 	memset(p_header, 0, PIPE_HEADER_LEN);
 	pipe_set_version(p_header, 1);

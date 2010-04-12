@@ -93,6 +93,8 @@ typedef struct _opt_t{	/* set by getopt */
 	char           *ifname;
 	int		ipver;
 	int             fd;
+	char           *raddr;
+	int             rport;
 #endif /* RTPRECV */
 	int             clock, freq, plen;
 	u_int32_t       wait;
@@ -140,7 +142,7 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	int             ch;	/* for getopt */
 	char           *temp;
 #ifdef RTPRECV
-	char           *opts = "C:R:L:N:y:W:B:A:P:I:V:D:";
+	char           *opts = "C:R:L:N:y:W:B:A:P:I:V:D:a:p:";
 #else /* RTPRECV */
 	char           *opts = "C:R:L:N:y:W:B:D:";
 #endif /* RTPRECV */
@@ -186,6 +188,8 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	opt->port = DEF_RTPRECV_PORT;
 	opt->ifname = DEF_RTPRECV_IF;
 	opt->ipver = 0;
+	opt->raddr = NULL;
+	opt->rport = 0;
 #endif
 
 	/* get environment variables */
@@ -245,6 +249,12 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 		case 'V':
 			opt->ipver = atoi(optarg);
 			break;
+		case 'a':
+			opt->raddr = optarg;
+			break;
+		case 'p':
+			opt->rport = atoi(optarg);
+			break;
 #endif /* RTPRECV */
 		case 'D':
 			debug_level = atoi(optarg);
@@ -293,6 +303,19 @@ main(int argc, char *argv[])
 #ifdef RTPRECV
 	mfd = recvsock_setup(opt.addr, opt.port, opt.ifname, opt.ipver);
 	e_printf("\n");
+	if (opt.raddr) {
+		struct sockaddr_in sin;
+		socklen_t slen = sizeof (sin);
+
+		bzero(&sin, sizeof (sin));
+		sin.sin_family = AF_INET;
+		sin.sin_port = htons (opt.rport);
+		inet_pton (AF_INET, opt.raddr, &sin.sin_addr);
+		if (connect(mfd, (struct sockaddr *)&sin, slen) != 0) {
+			e_printf ("\ncannot connect\n");
+			return -1;
+		}
+	}
 	opt.fd=mfd;
 #else /* RTPRECV */
 	mfd = STDIN_FILENO;

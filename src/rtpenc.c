@@ -21,6 +21,8 @@
 #include <sys/time.h>
 #include <signal.h>
 
+#include <wlresvapi.h>
+
 #include "def_value.h"
 #ifdef RTPSEND
 #include "sendsock_setup.h"
@@ -65,6 +67,8 @@ char           *addr;	/* IP address or domainname */
 int             port;
 char           *src_addr;
 int             src_port;
+int		lambdano;
+int		lambdano_enable;
 #endif /* RTPSEND */
 
 int
@@ -86,6 +90,7 @@ opt_etc(int argc, char *argv[])
 #ifdef RTPSEND
 	" [-A <IP-addr>] [-P <port>] [-a <src IP-addr>] [-p <src port>]\n"
 	" [-V <IP-ver>] [-D <debug level>] [-e <error rate>] [-0123s]\n"
+	" [-l lambdano]\n"
 #else
 	" [-D <debug level>] [-0]\n"
 #endif /* RTPSEND */
@@ -108,6 +113,7 @@ opt_etc(int argc, char *argv[])
 	"  I <s>   : send network interface name \n"
 	"  V <n>   : IP version # (4 or 6)\n"
 	"  s       : shaping level (default=2  0:frame 1:packet and dups 2:packet)\n"
+	"  l <n>   : lambdano to reserve\n"
 #endif
 	"  d       : duped packet to dummy \n"
 	" <debug>\n"
@@ -127,6 +133,7 @@ opt_etc(int argc, char *argv[])
 	ifname = DEF_RTPSEND_IF;
 	ttl = DEF_RTPSEND_TTL;
 	OPT.shaping_lev=2;
+	lambdano_enable = 0;
 #endif /* RTPSEND */
 	OPT.clock = DEF_EMON_CLOCK;
 	OPT.freq = DEF_EMON_FREQ;
@@ -212,6 +219,10 @@ opt_etc(int argc, char *argv[])
 		case 's':
 			OPT.shaping_lev=atoi(optarg);
 			break;
+		case 'l':
+			lambdano = atoi(optarg);
+			lambdano_enable = 1;
+			break;
 #endif /* RTPSEND */
 		case 'D':
 			debug_level = atoi(optarg);
@@ -246,6 +257,34 @@ opt_etc(int argc, char *argv[])
 	}
 	OPT.sfd = sendsock_setup(addr, port, ifname, src_addr, src_port,
 				 ttl, OPT.ipver);
+	if (lambdano_enable) {
+		struct wl_resv resv;
+		struct wl_reserve_status status;
+		socklen_t status_len;
+		int ret;
+
+		resv.wlr_flags = WL_RESV_FLAG_SEND;
+		resv.wlr_lambda_no = lambdano;
+		ret = setsockopt (OPT.sfd, IPPROTO_IP, WL_ADD_RESV, &resv,
+				  sizeof (resv));
+		if (ret == -1) {
+			d_printf ("setsockopt WL_ADD_RESV error");
+			exit (-1);
+		}
+
+		status_len = sizeof (status);
+		ret = getsockopt (OPT.sfd, IPPROTO_IP, WL_RESERVE_STATUS,
+				  &status, &status_len);
+		if (ret == -1) {
+			d_printf ("getsockopt WL_RESERVE_STATUS error");
+			exit (-1);
+		}
+
+		if (status.status != WL_RESV_STATUS_RESERVED){
+			d_printf ("can't reserve lambdano");
+			exit (-1);
+		}
+	}
 #else
 	d_printf("\nrtpenc: pt=%d", OPT.payload_type);
 #endif /* RTPSEND */

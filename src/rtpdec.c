@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <err.h>
+#include <wlresvapi.h>
 #include "def_value.h"
 #ifdef RTPRECV
 #include "multicast.h"
@@ -95,6 +96,8 @@ typedef struct _opt_t{	/* set by getopt */
 	int             fd;
 	char           *raddr;
 	int             rport;
+	int             lambdano;
+	int             lambdano_enable;
 #endif /* RTPRECV */
 	int             clock, freq, plen;
 	u_int32_t       wait;
@@ -142,7 +145,7 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	int             ch;	/* for getopt */
 	char           *temp;
 #ifdef RTPRECV
-	char           *opts = "C:R:L:N:y:W:B:A:P:I:V:D:a:p:";
+	char           *opts = "C:R:L:N:y:W:B:A:P:I:V:D:a:p:l:";
 #else /* RTPRECV */
 	char           *opts = "C:R:L:N:y:W:B:D:";
 #endif /* RTPRECV */
@@ -173,6 +176,7 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	"  V <n>   : IP version # (4 or 6)\n"
 	"  a <s>   : remote IP address\n"
 	"  p <n>   : remote port #\n"
+	"  l <n>   : lambdano to reserve\n"
 #endif /* RTPRECV */
 	" <debug>\n"
 	"  D <n>   : debug level\n"
@@ -192,6 +196,7 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	opt->ipver = 0;
 	opt->raddr = NULL;
 	opt->rport = 0;
+	opt->lambdano_enable = 0;
 #endif
 
 	/* get environment variables */
@@ -257,6 +262,10 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 		case 'p':
 			opt->rport = atoi(optarg);
 			break;
+		case 'l':
+			opt->lambdano = atoi(optarg);
+			opt->lambdano_enable = 1;
+			break;
 #endif /* RTPRECV */
 		case 'D':
 			debug_level = atoi(optarg);
@@ -316,6 +325,34 @@ main(int argc, char *argv[])
 		if (connect(mfd, (struct sockaddr *)&sin, slen) != 0) {
 			e_printf ("\ncannot connect\n");
 			return -1;
+		}
+	}
+	if (opt.lambdano_enable) {
+		struct wl_resv resv;
+		struct wl_reserve_status status;
+		socklen_t status_len;
+		int ret;
+
+		resv.wlr_flags = WL_RESV_FLAG_RECV;
+		resv.wlr_lambda_no = opt.lambdano;
+		ret = setsockopt (mfd, IPPROTO_IP, WL_ADD_RESV, &resv,
+				  sizeof (resv));
+		if (ret == -1) {
+			d_printf ("setsockopt WL_ADD_RESV error");
+			exit (-1);
+		}
+
+		status_len = sizeof (status);
+		ret = getsockopt (mfd, IPPROTO_IP, WL_RESERVE_STATUS,
+				  &status, &status_len);
+		if (ret == -1) {
+			d_printf ("getsockopt WL_RESERVE_STATUS error");
+			exit (-1);
+		}
+
+		if (status.status != WL_RESV_STATUS_RESERVED){
+			d_printf ("can't reserve lambdano");
+			exit (-1);
 		}
 	}
 	opt.fd=mfd;

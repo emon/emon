@@ -153,7 +153,8 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	"usage : %s [-C <clock>] [-R <freq>] [-L <packet len>] [-N <n>]\n"
 	" [-y <payload type>] [-W <wait>] [-B <buffer num>]\n"
 #ifdef RTPRECV
-	" [-A <IP addr>] [-P <port>] [-I <interface>] [-V <IP-ver>]"
+	" [-A <IP addr>] [-P <port>] [-I <interface>] [-V <IP-ver>]\n"
+	" [-a <remote IP addr>] [-p <remote port>] [-l <lambdano>]\n"
 #endif
 	" [-D <debug level>]\n"
 	" options\n"

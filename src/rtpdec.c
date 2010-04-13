@@ -171,6 +171,8 @@ opt_etc(int argc, char *argv[],opt_t *opt)
 	"  P <n>   : port #\n"
 	"  I <s>   : receive network interface\n"
 	"  V <n>   : IP version # (4 or 6)\n"
+	"  a <s>   : remote IP address\n"
+	"  p <n>   : remote port #\n"
 #endif /* RTPRECV */
 	" <debug>\n"
 	"  D <n>   : debug level\n"

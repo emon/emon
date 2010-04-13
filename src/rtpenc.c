@@ -80,7 +80,7 @@ opt_etc(int argc, char *argv[])
 #ifdef RTPSEND
 	u_char          ttl;
 	char           *ifname;
-	char           *opts = "C:R:L:N:y:t:I:A:P:a:p:V:D:e:s:d0123";
+	char           *opts = "C:R:L:N:y:t:I:A:P:a:p:V:D:e:s:l:d0123";
 #else
 	char           *opts = "C:R:L:N:y:D:0123d";
 #endif /* RTPSEND */

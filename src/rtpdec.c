@@ -330,7 +330,8 @@ main(int argc, char *argv[])
 			if(timeval_comp(&nowtv,&(buf->buf[buf->wait_idx]->waitlimit))>0){
 				/* already exceeded waitlimit of waiting packet .*/
 
-				rtpdec_write(buf,&opt);
+				if (rtpdec_write(buf,&opt) == -1)
+					exit (0);
 				continue;
 			}
 			selecttv=timeval_sub_timeval(&(buf->buf[buf->wait_idx]->waitlimit),&nowtv);
@@ -356,7 +357,8 @@ main(int argc, char *argv[])
 				break;
 			case 4:	/*  recv packet[now_idx] */
 				d3_printf("update waited packet .\n");
-				rtpdec_write(buf,&opt);
+				if (rtpdec_write(buf,&opt) == -1)
+					exit (0);
 				break;
 			default :
 				e_printf("read rtpdec_read usage .\n");
@@ -486,7 +488,7 @@ static int rtpdec_read(rtpbuf_t *buf,opt_t *opt){
 		buf->empty=pkt->next;
 		io_ret=rtpdec_bufpktwrite(buf,0);
 		if(io_ret <0){
-			return 0;
+			return -1;
 		}
 		buf->wait_num=0;
 		ret=1;goto recv;
@@ -626,13 +628,13 @@ static int rtpdec_write(rtpbuf_t *buf,opt_t *opt){
 			//buf->last_seq=UINT_ADD(buf->last_seq,1);
 			io_ret=write(STDOUT_FILENO,p_hd,PIPE_HEADER_LEN);
 			if(io_ret==-1){
-				return 0;
+				return -1;
 			}
 			total_seqskip++;
 		}else{		/* pkt was received and now write it. */
 			io_ret=rtpdec_bufpktwrite(buf,idx);
 			if(io_ret==-1){
-				return 0;
+				return -1;
 			}
 			total_seqlen++;
 		}
@@ -648,7 +650,7 @@ static int rtpdec_write(rtpbuf_t *buf,opt_t *opt){
 		}
 		io_ret=rtpdec_bufpktwrite(buf,idx);
 		if(io_ret==-1){
-			return 0;
+			return -1;
 		}
 		total_seqlen++;
 	}

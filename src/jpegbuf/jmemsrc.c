@@ -87,13 +87,7 @@ jpeg_mem_src_init(j_decompress_ptr cinfo, size_t input_buf_size)
 				(j_common_ptr) cinfo, JPOOL_PERMANENT,
 				input_buf_size * SIZEOF(JOCTET));
 	}
-
 	src = (my_src_ptr) cinfo->src;
-	if (src->inbuf == NULL){
-		if((src->inbuf = malloc(sizeof(buf_t)))==NULL){
-			ERREXIT(cinfo, JERR_OUT_OF_MEMORY);
-		}
-	}
 
 	src->pub.init_source = init_source;
 	src->pub.fill_input_buffer = fill_input_buffer;
@@ -105,25 +99,18 @@ jpeg_mem_src_init(j_decompress_ptr cinfo, size_t input_buf_size)
 }
 
 
+#if 0
 GLOBAL(void)
-jpeg_mem_src(j_decompress_ptr cinfo, unsigned char *inbuffer, unsigned long insize)
-/*
-  unsigned long insize : append for libjpeg8 at 2010/03/30
-   I don't know how do I treat this variable
- */
+jpeg_mem_src(j_decompress_ptr cinfo, buf_t *inbuf)
 {
 	my_src_ptr src;
-
-	if (inbuffer == NULL || insize == 0)  /* Treat empty input as fatal error */
-		ERREXIT(cinfo, JERR_INPUT_EMPTY);
-
 	if (cinfo->src == NULL){
 		ERREXIT(cinfo, JERR_OUT_OF_MEMORY);
 	}
 	src = (my_src_ptr) cinfo->src;
+
 	src->pub.bytes_in_buffer = 0;
 	src->pub.next_input_byte = NULL;
-	src->inbuf->buf = inbuffer;
-	src->inbuf->writecnt = insize;
-	src->inbuf->readcnt = 0;
+	src->inbuf = inbuf;
 }
+#endif

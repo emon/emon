@@ -318,7 +318,7 @@ file2pipe(int freq, opt_t *opt)
 					  ts_pipe, len, m);
 				if(io_ret==PIPE_ERROR){
 					e_printf("PIPE_ERROR exit..\n");
-					break;
+					exit (0);
 				}
 			}
 		}

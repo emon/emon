@@ -647,6 +647,20 @@ jpeg_display_rgb(int argc, char *argv[])
 	for (STAT.frame_count = 1;; STAT.frame_count++) {
 		if (STAT.f_sigint)
 			sigint_quit();
+		{
+			SDL_Event event;
+			while (SDL_PollEvent (&event)) {
+				switch (event.type) {
+				case SDL_QUIT:
+					return 0;
+					break;
+				default:
+					/* ignore all events except quit */
+					break;
+				}
+			}
+		}
+
 
 		jpeg_has_error = 0;	/* reset flag */
 		buf_status=decoder_buf_read();
